@@ -16,7 +16,6 @@ def read_file(file_name):
     return n_jobs, n_machines, operations
 
 def evaluate_makespan(population,n_jobs,n_machines):
-
     for individual in population:
         # each machine has a start and end time
         machine_time = [[0,0] for _ in range(n_machines)]
@@ -39,7 +38,39 @@ def evaluate_makespan(population,n_jobs,n_machines):
     return end_time
 
 def mutation(population):
-    pass
+    # select a individual
+    # for now, to test, there is only a individual
+    individual = population[0]
+
+    individual_size = len(individual)
+
+    operation = random.choice(individual)
+    job = operation[0]
+    idx = individual.index(operation)
+
+    print(individual)
+    print("Operacao",operation,idx)
+    
+    # check the left border
+    left_border = -1
+    for op in range(idx):
+        if job == individual[op][0]:
+            left_border = op
+
+    # check the right border
+    for op in range(idx+1, individual_size):
+        if job == individual[op][0]:
+            right_border = op
+            break
+    else:
+        right_border = individual_size
+
+    new_index = random.randint(left_border+1, right_border-1)
+    individual.insert(new_index, individual.pop(idx))
+    print("Bordas", left_border,right_border)
+    print("Novo index",new_index)
+
+    print(individual)
 
 # represents a solution to the problem
 def create_individual(n_jobs, n_machines, operations):
@@ -69,7 +100,7 @@ def main():
     file = "exemplo.txt"
     n_jobs, n_machines, operations = read_file(file)
 
-    population_size = 200
+    population_size = 1
     population = []
 
     for _ in range(population_size):
@@ -81,7 +112,8 @@ def main():
         value = evaluate_makespan(population,n_jobs,n_machines)
         makespan.append(max(value))
     
-    print(min(makespan))
+    #print(min(makespan))
+    mutation(population)
 
     """teste = [(2,1,43),(1,1,29),(1,2,78),(3,2,91),(2,3,90),(3,1,85),(2,2,28),(1,3,9),(3,3,74)]
     population = [teste]"""
