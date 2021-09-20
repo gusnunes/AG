@@ -15,11 +15,34 @@ def read_file(file_name):
     f.close()
     return n_jobs, n_machines, operations
 
-def evaluate_makespan(population):
+def evaluate_makespan(population,n_jobs,n_machines):
+
+    for individual in population:
+        # each machine has a start and end time
+        machine_time = [[0,0] for _ in range(n_machines)]
+
+        # more recent end time of the job
+        end_time = [0 for _ in range(n_jobs)]
+
+        for operation in individual:
+            job,machine,time = operation
+
+            max_time = max(machine_time[machine-1][1],end_time[job-1])
+
+            machine_time[machine-1][0] = max_time
+            machine_time[machine-1][1] = machine_time[machine-1][0] + time
+
+            end_time[job-1] = machine_time[machine-1][1]
+
+            # print(job, end_time[job-1])
+    
+    return end_time
+
+def mutation(population):
     pass
 
 # represents a solution to the problem
-def create_chromosome(n_jobs, n_machines, operations):
+def create_individual(n_jobs, n_machines, operations):
     sequences = []   # operations sequences of the jobs
     start = 0
     stop = n_machines
@@ -30,7 +53,7 @@ def create_chromosome(n_jobs, n_machines, operations):
         start = stop
         stop += n_machines 
 
-    chromosome = []
+    individual = []
     for _ in range(n_jobs*n_machines):
         first_operations = [(sequence[0],idx) for idx,sequence in enumerate(sequences) if len(sequence)>0]
         operation = random.choice(first_operations)
@@ -38,19 +61,29 @@ def create_chromosome(n_jobs, n_machines, operations):
         idx = operation[1]
         sequences[idx].remove(operation[0])
         
-        chromosome.append(operation[0])
+        individual.append(operation[0])
     
-    return chromosome
+    return individual
            
 def main():
     file = "exemplo.txt"
     n_jobs, n_machines, operations = read_file(file)
 
-    population_size = 1
+    population_size = 200
     population = []
+
     for _ in range(population_size):
-        population.append(create_chromosome(n_jobs, n_machines, operations))
+        individual = create_individual(n_jobs, n_machines, operations)
+        population.append(individual)
     
-    print(population)
+    makespan = []
+    for _ in range(population_size):
+        value = evaluate_makespan(population,n_jobs,n_machines)
+        makespan.append(max(value))
+    
+    print(min(makespan))
+
+    """teste = [(2,1,43),(1,1,29),(1,2,78),(3,2,91),(2,3,90),(3,1,85),(2,2,28),(1,3,9),(3,3,74)]
+    population = [teste]"""
 
 main()
