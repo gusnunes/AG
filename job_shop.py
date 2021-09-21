@@ -1,4 +1,5 @@
 import random
+import copy
 
 def read_file(file_name):
     f = open(file_name, "r")
@@ -17,25 +18,21 @@ def read_file(file_name):
 
 def evaluate_makespan(individual,n_jobs,n_machines):
     # each machine has a start and end time
-    machine_time = [[0,0] for _ in range(n_machines)]
+    machine_time = [0 for _ in range(n_machines)]
 
     # more recent end time of the job
-    end_time = [0 for _ in range(n_jobs)]
+    job_time = [0 for _ in range(n_jobs)]
 
     for operation in individual:
         job,machine,time = operation
 
-        max_time = max(machine_time[machine-1][1],end_time[job-1])
+        max_time = max(machine_time[machine],job_time[job-1])
 
-        machine_time[machine-1][0] = max_time
-        machine_time[machine-1][1] = machine_time[machine-1][0] + time
-
-        end_time[job-1] = machine_time[machine-1][1]
-
-        # print(job, end_time[job-1])
+        machine_time[machine] = max_time + time
+        job_time[job-1] = machine_time[machine]
     
     # job that has the max time to complete
-    makespan = max(end_time)
+    makespan = max(job_time)
     return makespan
 
 def best_individual(population,n_jobs,n_machines):
@@ -65,33 +62,77 @@ def tournament(population,tournament_size,n_jobs,n_machines):
     
     return idx_winner
 
-def mutation(population):
-    # select a individual
-    # for now, to test, there is only a individual
-    individual = population[0]
+def create_offspring(mask,parents):
+    offspring = []
 
-    individual_size = len(individual)
-
-    operation = random.choice(individual)
-    job = operation[0]
-    idx = individual.index(operation)
+    for value in mask:
+        while True:
+            x = parents[value].pop(0)
+            if x not in offspring:
+                offspring.append(x)
+                break
     
-    # check the left border
-    left_border = -1
-    for op in range(idx):
-        if job == individual[op][0]:
-            left_border = op
+    return offspring
 
-    # check the right border
-    for op in range(idx+1, individual_size):
-        if job == individual[op][0]:
-            right_border = op
-            break
-    else:
-        right_border = individual_size
+def crossover(p1,p2):
+    mask_size = len(p1)
+    m1 = [random.randint(0,1) for _ in range(mask_size)]
+    m2 = [1 if value == 0 else 0 for value in m1]
 
-    new_index = random.randint(left_border+1, right_border-1)
-    individual.insert(new_index, individual.pop(idx))
+    # parents list
+    p = [p1,p2]
+
+    # masks list
+    m = [m1,m2]
+
+    for idx in range(2):
+        x = create_offspring(m[idx],copy.deepcopy(p))
+        print(x)
+
+
+def mutation(population,idx_individual,pm):
+    individual_size = len(population[idx_individual])
+    
+    # many times the individual is mutating
+    mutation_times = round(pm * individual_size)
+
+    for _ in range(mutation_times):
+        operation = random.choice(population[idx_individual])
+        job = operation[0]
+        idx_operation = population[idx_individual].index(operation)
+        
+        # check the left border
+        left_border = -1
+        for op in range(idx_operation):
+            if job == population[idx_individual][op][0]:
+                left_border = op
+
+        # check the right border
+        for op in range(idx_operation+1, individual_size):
+            if job == population[idx_individual][op][0]:
+                right_border = op
+                break
+        else:
+            right_border = individual_size
+
+        new_index = random.randint(left_border+1, right_border-1)
+        population[idx_individual].insert(new_index, population[idx_individual].pop(idx_operation))
+
+def genetic_operators(population,n_jobs,n_machines):
+    # 10% of population
+    individuals =  0.3
+    population_size = len(population)
+    proportion_population = round(individuals * population_size)
+    
+    # select individuasl by tournament
+    tournament_size = 5
+    pm = 0.4
+
+    for _ in range(proportion_population):
+        idx_individual = tournament(population,tournament_size,n_jobs,n_machines)
+        mutation(population,idx_individual,pm)
+        
+        # then make crossover and mutation
 
 # represents a solution to the problem
 def create_individual(n_jobs,n_machines,operations):
@@ -129,18 +170,36 @@ def main():
     file = "exemplo.txt"
     n_jobs, n_machines, operations = read_file(file)
 
-    population_size = 3
+    solutions = []
+    """for _ in range(100):
+
+        population_size = 100
+        population = create_population(n_jobs,n_machines,operations,population_size)
+
+        generations = 200
+        for _ in range(generations):
+            genetic_operators(population,n_jobs,n_machines)
+
+        # teste = [(2,0,43),(1,0,29),(1,1,78),(3,1,91),(2,2,90),(3,0,85),(2,1,28),(1,2,9),(3,2,74)]
+        # population = [teste]
+        
+        idx,makespan = best_individual(population,n_jobs,n_machines)
+
+        solutions.append(makespan)
+        
+        #print(makespan)
+        # print(population[idx])
+    
+    print(min(solutions))"""
+
+    population_size = 2
     population = create_population(n_jobs,n_machines,operations,population_size)
 
-    """teste = [(2,1,43),(1,1,29),(1,2,78),(3,2,91),(2,3,90),(3,1,85),(2,2,28),(1,3,9),(3,3,74)]
-    population = [teste]"""
+    print("População original")
+    print(population[0])
+    print(population[1])
 
-    tournament_size = 2
-    idx = tournament(population,tournament_size,n_jobs,n_machines)
-    print("Idx do vencedor:",idx)
-    
-    """idx,makespan = best_individual(population,n_jobs,n_machines)
-    print(makespan)
-    print(population[idx])"""
+    print("\nPopulação depois do crossover")
+    crossover(population[0],population[1])
     
 main()
