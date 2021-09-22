@@ -35,6 +35,26 @@ def evaluate_makespan(individual,n_jobs,n_machines):
     makespan = max(job_time)
     return makespan
 
+def update_population(population,n_jobs,n_machines,n_individuals):
+    idx_value = []
+    
+    for idx,individual in enumerate(population):
+        makespan = evaluate_makespan(individual,n_jobs,n_machines)
+        idx_value.append((idx,makespan))
+      
+    # take the n biggest makespan
+    sorted_values = sorted(idx_value, key=lambda x: x[1])
+    individuals_idx = sorted_values[-n_individuals:]
+
+    # sort the idx of individuals
+    individuals_idx = sorted(individuals_idx, key=lambda x: x[0])
+
+    # remove the worsts individuals from population
+    shift = 0
+    for i,_ in individuals_idx:
+        population.pop(i-shift)
+        shift += 1
+
 def best_individual(population,n_jobs,n_machines):
     min_makespan = float("inf")
     
@@ -74,21 +94,20 @@ def create_offspring(mask,parents):
     
     return offspring
 
-def crossover(p1,p2):
-    mask_size = len(p1)
+def crossover(parents):
+    mask_size = len(parents[0])
     m1 = [random.randint(0,1) for _ in range(mask_size)]
     m2 = [1 if value == 0 else 0 for value in m1]
-
-    # parents list
-    p = [p1,p2]
 
     # masks list
     m = [m1,m2]
 
+    offsprings = []
     for idx in range(2):
-        x = create_offspring(m[idx],copy.deepcopy(p))
-        print(x)
-
+        os = create_offspring(m[idx],copy.deepcopy(parents))
+        offsprings.append(os)
+    
+    return offsprings
 
 def mutation(population,idx_individual,pm):
     individual_size = len(population[idx_individual])
@@ -118,22 +137,41 @@ def mutation(population,idx_individual,pm):
         new_index = random.randint(left_border+1, right_border-1)
         population[idx_individual].insert(new_index, population[idx_individual].pop(idx_operation))
 
-def genetic_operators(population,n_jobs,n_machines):
-    # 10% of population
-    individuals =  0.3
+def execute(population,n_jobs,n_machines):
+    # probability crossover
+    pc =  0.8
     population_size = len(population)
-    proportion_population = round(individuals * population_size)
+    proportion_population = round(pc * population_size)
     
     # select individuasl by tournament
     tournament_size = 5
-    pm = 0.4
+    
+    # probability mutation
+    pm = 0.2
 
+    parents = []
     for _ in range(proportion_population):
-        idx_individual = tournament(population,tournament_size,n_jobs,n_machines)
-        mutation(population,idx_individual,pm)
         
-        # then make crossover and mutation
+        # choose two parents by tournament
+        for _ in range(2):
+            idx_individual = tournament(population,tournament_size,n_jobs,n_machines)
+            
+            p = population[idx_individual]
+            parents.append(copy.deepcopy(p))
 
+            # remove parent from population
+            # population.pop(idx_individual)
+        
+        # creates two offsprings by crossover 
+        offsprings = crossover(parents)
+        population.extend(offsprings)
+
+        # mutation in the last two individuals
+        for i in range(1,3):
+            mutation(population,-i,pm)
+    
+    update_population(population,n_jobs,n_machines,proportion_population*2)
+        
 # represents a solution to the problem
 def create_individual(n_jobs,n_machines,operations):
     sequences = []   # operations sequences of the jobs
@@ -167,39 +205,24 @@ def create_population(n_jobs,n_machines,operations,population_size):
     return population
       
 def main():
-    file = "exemplo.txt"
+    file = "ft06.txt"
     n_jobs, n_machines, operations = read_file(file)
 
     solutions = []
-    """for _ in range(100):
+    for _ in range(10):
 
-        population_size = 100
+        population_size = 50
         population = create_population(n_jobs,n_machines,operations,population_size)
 
-        generations = 200
+        generations = 100
         for _ in range(generations):
-            genetic_operators(population,n_jobs,n_machines)
-
-        # teste = [(2,0,43),(1,0,29),(1,1,78),(3,1,91),(2,2,90),(3,0,85),(2,1,28),(1,2,9),(3,2,74)]
-        # population = [teste]
+            execute(population,n_jobs,n_machines)
         
         idx,makespan = best_individual(population,n_jobs,n_machines)
 
         solutions.append(makespan)
-        
-        #print(makespan)
-        # print(population[idx])
     
-    print(min(solutions))"""
-
-    population_size = 2
-    population = create_population(n_jobs,n_machines,operations,population_size)
-
-    print("População original")
-    print(population[0])
-    print(population[1])
-
-    print("\nPopulação depois do crossover")
-    crossover(population[0],population[1])
+    print(min(solutions))
+    # print(population[idx])
     
 main()
