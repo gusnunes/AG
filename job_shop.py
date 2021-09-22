@@ -17,7 +17,7 @@ def read_file(file_name):
     return n_jobs, n_machines, operations
 
 def evaluate_makespan(individual,n_jobs,n_machines):
-    # each machine has a start and end time
+    # each machine has a end time
     machine_time = [0 for _ in range(n_machines)]
 
     # more recent end time of the job
@@ -112,13 +112,14 @@ def crossover(parents):
 def mutation(population,idx_individual,pm):
     individual_size = len(population[idx_individual])
     
-    # many times the individual is mutating
+    # how many mutations in individual operations
     mutation_times = round(pm * individual_size)
 
     for _ in range(mutation_times):
-        operation = random.choice(population[idx_individual])
+        # select randomly a operation
+        idx_operation = random.randint(0,individual_size-1)
+        operation = population[idx_individual][idx_operation]
         job = operation[0]
-        idx_operation = population[idx_individual].index(operation)
         
         # check the left border
         left_border = -1
@@ -158,9 +159,6 @@ def execute(population,n_jobs,n_machines):
             
             p = population[idx_individual]
             parents.append(copy.deepcopy(p))
-
-            # remove parent from population
-            # population.pop(idx_individual)
         
         # creates two offsprings by crossover 
         offsprings = crossover(parents)
@@ -205,7 +203,7 @@ def create_population(n_jobs,n_machines,operations,population_size):
     return population
       
 def main():
-    file = "ft06.txt"
+    file = "datasets//exemplo1.txt"
     n_jobs, n_machines, operations = read_file(file)
 
     solutions = []
@@ -214,7 +212,8 @@ def main():
         population_size = 50
         population = create_population(n_jobs,n_machines,operations,population_size)
 
-        generations = 100
+        # generations = 100
+        generations = 50
         for _ in range(generations):
             execute(population,n_jobs,n_machines)
         
